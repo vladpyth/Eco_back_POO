@@ -77,9 +77,14 @@ public class PdfReportGenerator {
 
             yPosition = drawHeader(contentStream, page, font, yPosition);
 
-            for (int wasteIndex = 0; wasteIndex < data.size(); wasteIndex++) {
-                WasteTypeReportDto wasteType = data.get(wasteIndex);
-                if (wasteIndex > 0) {
+            int drawnWasteTypes = 0;
+            for (WasteTypeReportDto wasteType : data) {
+                // Нет предприятий по этому отходу — блок не показываем
+                if (wasteType.getFactories() == null || wasteType.getFactories().isEmpty()) {
+                    continue;
+                }
+
+                if (drawnWasteTypes > 0) {
                     yPosition -= WASTE_BLOCK_GAP;
                 }
                 if (yPosition < 150) {
@@ -93,50 +98,44 @@ public class PdfReportGenerator {
                 }
 
                 yPosition = drawWasteTypeHeader(contentStream, font, wasteType, yPosition);
+                yPosition = drawTableHeaders(contentStream, font, colStarts, colWidth, yPosition);
+                float tableTopY = yPosition + ROW_HEIGHT;
+                List<Float> horizontalSeparators = new ArrayList<>();
+                horizontalSeparators.add(yPosition);
 
-                if (wasteType.getFactories() == null || wasteType.getFactories().isEmpty()) {
-                    yPosition -= HEADER_GAP;
-                    writeText(contentStream, font, 10, MARGIN + 20, yPosition,
-                            "Нет организаций, работающих с данным типом отходов");
-                    yPosition -= HEADER_GAP * 2;
-                } else {
-                    yPosition = drawTableHeaders(contentStream, font, colStarts, colWidth, yPosition);
-                    float tableTopY = yPosition + ROW_HEIGHT;
-                    List<Float> horizontalSeparators = new ArrayList<>();
-                    horizontalSeparators.add(yPosition);
-
-                    for (WasteTypeReportDto.FactoryForWasteReportDto factory : wasteType.getFactories()) {
-                        if (yPosition < 100) {
-                            drawInnerGrid(contentStream, colStarts, colWidth, tableTopY, yPosition, horizontalSeparators);
-                            contentStream.close();
-                            page = new PDPage(LANDSCAPE_A4);
-                            document.addPage(page);
-                            contentStream = new PDPageContentStream(document, page);
-                            yPosition = pageTop(page);
-                            colStarts = columnStarts(page);
-                            colWidth = columnWidth(page);
-                            yPosition = drawWasteTypeHeader(contentStream, font, wasteType, yPosition);
-                            yPosition = drawTableHeaders(contentStream, font, colStarts, colWidth, yPosition);
-                            tableTopY = yPosition + ROW_HEIGHT;
-                            horizontalSeparators = new ArrayList<>();
-                            horizontalSeparators.add(yPosition);
-                        }
-
-                        int lineCount = drawFactoryRow(contentStream, font, colStarts, colWidth, yPosition, factory);
-                        yPosition -= ROW_HEIGHT * lineCount;
+                for (WasteTypeReportDto.FactoryForWasteReportDto factory : wasteType.getFactories()) {
+                    if (yPosition < 100) {
+                        drawInnerGrid(contentStream, colStarts, colWidth, tableTopY, yPosition, horizontalSeparators);
+                        contentStream.close();
+                        page = new PDPage(LANDSCAPE_A4);
+                        document.addPage(page);
+                        contentStream = new PDPageContentStream(document, page);
+                        yPosition = pageTop(page);
+                        colStarts = columnStarts(page);
+                        colWidth = columnWidth(page);
+                        yPosition = drawWasteTypeHeader(contentStream, font, wasteType, yPosition);
+                        yPosition = drawTableHeaders(contentStream, font, colStarts, colWidth, yPosition);
+                        tableTopY = yPosition + ROW_HEIGHT;
+                        horizontalSeparators = new ArrayList<>();
                         horizontalSeparators.add(yPosition);
                     }
 
-                    drawInnerGrid(contentStream, colStarts, colWidth, tableTopY, yPosition, horizontalSeparators);
-                    yPosition -= SECTION_GAP;
+                    int lineCount = drawFactoryRow(contentStream, font, colStarts, colWidth, yPosition, factory);
+                    yPosition -= ROW_HEIGHT * lineCount;
+                    horizontalSeparators.add(yPosition);
                 }
+
+                drawInnerGrid(contentStream, colStarts, colWidth, tableTopY, yPosition, horizontalSeparators);
+                yPosition -= SECTION_GAP;
+                drawnWasteTypes++;
             }
 
             contentStream.close();
             addPageNumbers(document, font);
             document.save(baos);
 
-            log.info("PDF generated successfully with {} waste types", data.size());
+            log.info("PDF generated successfully with {} waste types (of {} in request)",
+                    drawnWasteTypes, data.size());
         } catch (Exception e) {
             log.error("Error generating PDF report", e);
             throw new IOException("Failed to generate PDF report: " + e.getMessage(), e);

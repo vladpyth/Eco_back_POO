@@ -2,6 +2,7 @@ package com.example.eco_service.repositories;
 
 import com.example.eco_service.entities.NumberPhoneCount;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.history.RevisionRepository;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface InterfNumberPhoneCount extends JpaRepository<NumberPhoneCount, Long>, RevisionRepository<NumberPhoneCount, Long, Integer> {
+public interface InterfNumberPhoneCount extends JpaRepository<NumberPhoneCount, Long>, JpaSpecificationExecutor<NumberPhoneCount>, RevisionRepository<NumberPhoneCount, Long, Integer> {
 
     @Query("SELECT c FROM NumberPhoneCount c WHERE c.id_object_place_trash.id_magasin_factory = :objectPlaceId")
     List<NumberPhoneCount> findAllByObjectPlaceId(@Param("objectPlaceId") Long objectPlaceId);
@@ -47,5 +48,10 @@ public interface InterfNumberPhoneCount extends JpaRepository<NumberPhoneCount, 
     @Transactional
     @Query("DELETE FROM NumberPhoneCount c WHERE c.id_phone_number.id_phone_number = :phoneId")
     void deleteAllByPhoneId(@Param("phoneId") Long phoneId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM NumberPhoneCount c WHERE c.id_object_place_trash.id_magasin_factory = :objectPlaceId")
+    void deleteAllByObjectPlaceId(@Param("objectPlaceId") Long objectPlaceId);
 }
 

@@ -1,10 +1,13 @@
 package com.example.eco_service.services;
 
 import com.example.eco_service.dto.request.*;
+import com.example.eco_service.dto.response.PageResponse;
 import com.example.eco_service.entities.*;
 import com.example.eco_service.repositories.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -717,11 +720,37 @@ public class CRUDServices {
     }
 
     public void deleteMagasinFactory(Long id) {
-        log.info("Deleting MagasinFactory with id: {}", id);
+        log.info("Deleting MagasinFactory with id: {} (cascade related)", id);
 
-        if (!magasinFactoryRepository.existsById(id)) {
-            throw new RuntimeException("MagasinFactory not found with id: " + id);
+        MagasinFactory factory = magasinFactoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("MagasinFactory not found with id: " + id));
+
+        // Снять FK предприятия → technology, иначе нельзя удалить связанные Technology
+        if (factory.getId_technology() != null) {
+            factory.setId_technology(null);
+            magasinFactoryRepository.saveAndFlush(factory);
         }
+
+        numberPhoneCountRepository.deleteAllByObjectPlaceId(id);
+
+        List<MyTrashCount> trashLinks = myTrashCountRepository.findAllByFactoryId(id);
+        if (!trashLinks.isEmpty()) {
+            List<Long> myTrashIds = trashLinks.stream()
+                    .filter(l -> l.getId_my_trash() != null && l.getId_my_trash().getId_my_trash() != null)
+                    .map(l -> l.getId_my_trash().getId_my_trash())
+                    .distinct()
+                    .toList();
+            myTrashCountRepository.deleteAll(trashLinks);
+            for (Long myTrashId : myTrashIds) {
+                List<MyTrashCount> leftover = myTrashCountRepository.findAllByMyTrashId(myTrashId);
+                if (leftover.isEmpty() && myTrashRepository.existsById(myTrashId)) {
+                    myTrashRepository.deleteById(myTrashId);
+                }
+            }
+        }
+
+        dropAirRepository.deleteAllByFactoryId(id);
+        technologyRepository.deleteAllByFactoryId(id);
 
         magasinFactoryRepository.deleteById(id);
     }
@@ -1133,5 +1162,123 @@ public class CRUDServices {
         }
 
         myTrashCountRepository.deleteById(id);
+    }
+
+    // ==================== PAGED LIST (page/size/q/sort/dir) ====================
+
+    @Transactional(readOnly = true)
+    public PageResponse<Region> findAllRegionsPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_region");
+        return PageResponse.from(regionRepository.findAll(
+                PageSupport.textSearch(q, "id_region", sort, dir, "id_region", false), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<District> findAllDistrictsPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_district");
+        return PageResponse.from(districtRepository.findAll(
+                PageSupport.districtSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<Cities> findAllCitiesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_cities");
+        return PageResponse.from(citiesRepository.findAll(
+                PageSupport.citiesSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ClassDanger> findAllClassDangersPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_class_danger");
+        return PageResponse.from(classDangerRepository.findAll(
+                PageSupport.textSearch(q, "id_class_danger", sort, dir, "id_class_danger", false), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<MagazinTrash> findAllMagazinTrashesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_magazin_trash");
+        return PageResponse.from(magazinTrashRepository.findAll(
+                PageSupport.magazinTrashSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<PhysStateTrash> findAllPhysStateTrashesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_mame_group");
+        return PageResponse.from(physStateTrashRepository.findAll(
+                PageSupport.physStateTrashSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ShortDiscribeTechnology> findAllShortDiscribeTechnologiesPaged(
+            Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_short_discribe_technology");
+        return PageResponse.from(shortDiscribeTechnologyRepository.findAll(
+                PageSupport.shortDiscribeTechnologySpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NameDropAirTrash> findAllNameDropAirTrashesPaged(
+            Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_name_grope_air");
+        return PageResponse.from(nameDropAirTrashRepository.findAll(
+                PageSupport.nameDropAirTrashSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Technology> findTechnologiesByFactory(Long factoryId) {
+        return technologyRepository.findAllByFactoryId(factoryId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DropAir> findDropAirsByFactory(Long factoryId) {
+        return dropAirRepository.findAllByFactoryId(factoryId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyTrash> findMyTrashesByFactory(Long factoryId) {
+        return myTrashCountRepository.findAllByFactoryId(factoryId).stream()
+                .map(MyTrashCount::getId_my_trash)
+                .filter(t -> t != null && t.getId_my_trash() != null)
+                .peek(this::enrichMyTrashWithFactory)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<Technology> findAllTechnologiesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_technology");
+        return PageResponse.from(technologyRepository.findAll(
+                PageSupport.technologySpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<MagasinFactory> findAllMagasinFactoriesPaged(
+            Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_magasin_factory");
+        // По умолчанию — рег. номер (то, что видно в первой колонке), а не PK
+        return PageResponse.from(magasinFactoryRepository.findAll(
+                PageSupport.textSearch(q, "id_magasin_factory", sort, dir, "id_registration", true), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<MyTrash> findAllMyTrashesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_my_trash");
+        Page<MyTrash> result = myTrashRepository.findAll(
+                PageSupport.myTrashSpec(q, sort, dir), pageable);
+        result.getContent().forEach(this::enrichMyTrashWithFactory);
+        return PageResponse.from(result);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<DropAir> findAllDropAirsPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_drop_air");
+        return PageResponse.from(dropAirRepository.findAll(
+                PageSupport.dropAirSpec(q, sort, dir), pageable));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<NumberPhone> findAllNumberPhonesPaged(Integer page, Integer size, String q, String sort, String dir) {
+        Pageable pageable = PageSupport.pageable(page, size, "id_phone_number");
+        return PageResponse.from(numberPhoneRepository.findAll(
+                PageSupport.numberPhoneSpec(q, sort, dir), pageable));
     }
 }

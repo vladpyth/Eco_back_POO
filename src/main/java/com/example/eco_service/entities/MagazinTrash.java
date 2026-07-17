@@ -27,7 +27,7 @@ public class MagazinTrash {
     @Column(nullable = false, unique = true, length = 8)
     private int code_trash;
 
-    @Column(nullable = false,  length = 50)
+    @Column(nullable = false, length = 255)
     private String name_trash;
 
 

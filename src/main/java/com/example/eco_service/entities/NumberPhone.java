@@ -26,6 +26,6 @@ public class NumberPhone {
     @JsonIgnore
     private java.util.List<NumberPhoneCount> numberPhoneCounts;
 
-    @Column(nullable = false, unique = true, length = 17)
+    @Column(nullable = false, unique = true, length = 255)
     private String number;
 }

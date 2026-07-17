@@ -3,6 +3,7 @@ package com.example.eco_service.repositories;
 import com.example.eco_service.entities.MyTrash;
 import com.example.eco_service.entities.MyTrashCount;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.history.RevisionRepository;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,7 @@ import java.util.Optional;
 
 
 @Repository
-public interface InterfMyTrashCount extends JpaRepository<MyTrashCount, Long>, RevisionRepository<MyTrashCount , Long, Integer> {
+public interface InterfMyTrashCount extends JpaRepository<MyTrashCount, Long>, JpaSpecificationExecutor<MyTrashCount>, RevisionRepository<MyTrashCount , Long, Integer> {
     // Найти все связи по ID типа отхода
     @Query("SELECT m FROM MyTrashCount m WHERE m.id_my_trash.id_my_trash = :myTrashId")
     List<MyTrashCount> findAllByMyTrashId(@Param("myTrashId") Long myTrashId);

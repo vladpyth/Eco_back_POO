@@ -22,7 +22,7 @@ public class NameDropAirTrash {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_name_grope_air;
 
-    @Column(nullable = false,  length = 50)
+    @Column(nullable = false, length = 255)
     private String name_drop_air_trash;
 
 

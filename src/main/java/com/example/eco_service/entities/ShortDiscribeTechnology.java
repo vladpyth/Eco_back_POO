@@ -19,6 +19,6 @@ public class ShortDiscribeTechnology {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_short_discribe_technology;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true, length = 255)
     private String technology;
 }

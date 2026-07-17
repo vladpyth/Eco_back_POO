@@ -3,6 +3,7 @@ package com.example.eco_service.routers;
 import com.example.eco_service.dto.request.*;
 import com.example.eco_service.entities.*;
 import com.example.eco_service.services.CRUDServices;
+import com.example.eco_service.services.PageSupport;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,8 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import java.time.LocalDateTime;
-import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -33,8 +32,16 @@ public class MainRouters {
     }
 
     @GetMapping("/region")
-    @Operation(summary = "Получить все регионы")
-    public ResponseEntity<List<Region>> findAllRegions() {
+    @Operation(summary = "Список регионов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllRegions(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllRegionsPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllRegions());
     }
 
@@ -66,8 +73,16 @@ public class MainRouters {
     }
 
     @GetMapping("/district")
-    @Operation(summary = "Получить все районы")
-    public ResponseEntity<List<District>> findAllDistricts() {
+    @Operation(summary = "Список районов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllDistricts(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllDistrictsPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllDistricts());
     }
 
@@ -99,8 +114,16 @@ public class MainRouters {
     }
 
     @GetMapping("/cities")
-    @Operation(summary = "Получить все города")
-    public ResponseEntity<List<Cities>> findAllCities() {
+    @Operation(summary = "Список городов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllCities(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllCitiesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllCities());
     }
 
@@ -132,8 +155,16 @@ public class MainRouters {
     }
 
     @GetMapping("/class-danger")
-    @Operation(summary = "Получить все классы опасности")
-    public ResponseEntity<List<ClassDanger>> findAllClassDangers() {
+    @Operation(summary = "Список классов опасности (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllClassDangers(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllClassDangersPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllClassDangers());
     }
 
@@ -165,8 +196,16 @@ public class MainRouters {
     }
 
     @GetMapping("/magazin-trash")
-    @Operation(summary = "Получить все отходы из справочника")
-    public ResponseEntity<List<MagazinTrash>> findAllMagazinTrashes() {
+    @Operation(summary = "Список отходов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllMagazinTrashes(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllMagazinTrashesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllMagazinTrashes());
     }
 
@@ -198,8 +237,16 @@ public class MainRouters {
     }
 
     @GetMapping("/phys-state-trash")
-    @Operation(summary = "Получить все физические состояния")
-    public ResponseEntity<List<PhysStateTrash>> findAllPhysStateTrashes() {
+    @Operation(summary = "Список физ. состояний (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllPhysStateTrashes(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllPhysStateTrashesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllPhysStateTrashes());
     }
 
@@ -231,8 +278,20 @@ public class MainRouters {
     }
 
     @GetMapping("/technology")
-    @Operation(summary = "Получить все технологии")
-    public ResponseEntity<List<Technology>> findAllTechnologies() {
+    @Operation(summary = "Список технологий (page+size — страница; factoryId — по предприятию; без них — весь список)")
+    public ResponseEntity<?> findAllTechnologies(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            @RequestParam(required = false) Long factoryId) {
+        if (factoryId != null) {
+            return ResponseEntity.ok(service.findTechnologiesByFactory(factoryId));
+        }
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllTechnologiesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllTechnologies());
     }
 
@@ -264,8 +323,16 @@ public class MainRouters {
     }
 
     @GetMapping("/magasin-factory")
-    @Operation(summary = "Получить все предприятия")
-    public ResponseEntity<List<MagasinFactory>> findAllMagasinFactories() {
+    @Operation(summary = "Список предприятий (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllMagasinFactories(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllMagasinFactoriesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllMagasinFactories());
     }
 
@@ -297,8 +364,20 @@ public class MainRouters {
     }
 
     @GetMapping("/my-trash")
-    @Operation(summary = "Получить все отходы предприятий")
-    public ResponseEntity<List<MyTrash>> findAllMyTrashes() {
+    @Operation(summary = "Список отходов предприятий (page+size — страница; factoryId — по предприятию; без них — весь список)")
+    public ResponseEntity<?> findAllMyTrashes(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            @RequestParam(required = false) Long factoryId) {
+        if (factoryId != null) {
+            return ResponseEntity.ok(service.findMyTrashesByFactory(factoryId));
+        }
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllMyTrashesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllMyTrashes());
     }
 
@@ -330,8 +409,20 @@ public class MainRouters {
     }
 
     @GetMapping("/drop-air")
-    @Operation(summary = "Получить все выбросы")
-    public ResponseEntity<List<DropAir>> findAllDropAirs() {
+    @Operation(summary = "Список выбросов (page+size — страница; factoryId — по предприятию; без них — весь список)")
+    public ResponseEntity<?> findAllDropAirs(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir,
+            @RequestParam(required = false) Long factoryId) {
+        if (factoryId != null) {
+            return ResponseEntity.ok(service.findDropAirsByFactory(factoryId));
+        }
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllDropAirsPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllDropAirs());
     }
 
@@ -363,8 +454,16 @@ public class MainRouters {
     }
 
     @GetMapping("/number-phone")
-    @Operation(summary = "Получить все номера телефонов")
-    public ResponseEntity<List<NumberPhone>> findAllNumberPhones() {
+    @Operation(summary = "Список телефонов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllNumberPhones(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllNumberPhonesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllNumberPhones());
     }
 
@@ -428,8 +527,16 @@ public class MainRouters {
     }
 
     @GetMapping("/short-discribe-technology")
-    @Operation(summary = "Получить все описания технологий")
-    public ResponseEntity<List<ShortDiscribeTechnology>> findAllShortDiscribeTechnologies() {
+    @Operation(summary = "Список описаний технологий (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllShortDiscribeTechnologies(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllShortDiscribeTechnologiesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllShortDiscribeTechnologies());
     }
 
@@ -461,8 +568,16 @@ public class MainRouters {
     }
 
     @GetMapping("/name-drop-air-trash")
-    @Operation(summary = "Получить все наименования выбросов")
-    public ResponseEntity<List<NameDropAirTrash>> findAllNameDropAirTrashes() {
+    @Operation(summary = "Список наименований выбросов (page+size — страница; без них — весь список)")
+    public ResponseEntity<?> findAllNameDropAirTrashes(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        if (PageSupport.wantsPage(page, size)) {
+            return ResponseEntity.ok(service.findAllNameDropAirTrashesPaged(page, size, q, sort, dir));
+        }
         return ResponseEntity.ok(service.findAllNameDropAirTrashes());
     }
 

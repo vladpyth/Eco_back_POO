@@ -35,7 +35,7 @@ public class WasteTypeReportDto {
         private String phoneOwn;          // Телефон собственника
         private Boolean objUseTrash;      // Обезвреживает собственные
         private Boolean objAcceptTrash;   // Принимает от других
-        private Float valueTrash;         // Количество отхода (из MyTrash)
+        private Float valueTrash;         // Количество отхода (в PDF по Technology не заполняется)
         private String registrationNumber; // Регистрационный номер
         private String ynp;               // УНП предприятия (MagasinFactory.YNP)
     }

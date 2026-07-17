@@ -2,6 +2,7 @@ package com.example.eco_service.entities;
 
 import com.example.eco_service.dto.response.PhoneOnObjectResponse;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -45,12 +46,23 @@ public class MagasinFactory {
     @JoinColumn(name = "id_short_discribe_technology",nullable = true)// ne to
     private ShortDiscribeTechnology id_short_discribe_technology ;
 
+    /**
+     * Устаревшая «одна» технология на предприятие.
+     * Основная связь M2M — через список {@link #technologies} (таблица Technology).
+     */
     @ManyToOne
     @JoinColumn(name = "id_technology",nullable = true)// ne to
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private Technology id_technology ;
 
+    /** Промежуточные связи предприятие ↔ отход/состояние/класс (многие ко многим). */
+    @OneToMany(mappedBy = "id_magasin_factory")
+    @JsonIgnoreProperties({"id_magasin_factory"})
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    @Builder.Default
+    private List<Technology> technologies = new ArrayList<>();
 
     @OneToMany(mappedBy = "id_object_place_trash",
             cascade = CascadeType.ALL,

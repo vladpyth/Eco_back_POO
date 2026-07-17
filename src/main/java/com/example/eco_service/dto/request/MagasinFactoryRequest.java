@@ -1,9 +1,8 @@
 package com.example.eco_service.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,7 +23,6 @@ public class MagasinFactoryRequest {
     private String id_registration;
 
     @Schema(description = "Дата регистрации", example = "2020-05-15")
-    @PastOrPresent(message = "Дата не может быть в будущем")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate date_register;
 
@@ -91,7 +89,8 @@ public class MagasinFactoryRequest {
     private String facticheskay_power;
 
     @Schema(description = "УНП (Учетный номер плательщика)", example = "123456789")
-    @Size(min = 9, max = 12, message = "УНП должен содержать 9-12 символов")
+    @Size(max = 12, message = "УНП максимум 12 символов")
+    @JsonProperty("YNP")
     private String YNP;
 
     @Schema(description = "Значение", example = "100")

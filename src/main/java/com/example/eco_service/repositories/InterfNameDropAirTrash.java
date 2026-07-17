@@ -3,11 +3,12 @@ package com.example.eco_service.repositories;
 import com.example.eco_service.entities.MyTrashCount;
 import com.example.eco_service.entities.NameDropAirTrash;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.history.RevisionRepository;
 import org.springframework.stereotype.Repository;
 
 
 @Repository
-public interface InterfNameDropAirTrash extends JpaRepository<NameDropAirTrash, Long>, RevisionRepository<NameDropAirTrash , Long, Integer> {
+public interface InterfNameDropAirTrash extends JpaRepository<NameDropAirTrash, Long>, JpaSpecificationExecutor<NameDropAirTrash>, RevisionRepository<NameDropAirTrash , Long, Integer> {
 
 }
