@@ -40,6 +40,17 @@ public class ReportController {
         return ResponseEntity.ok(reportService.getAllForReport());
     }
 
+    @GetMapping("/client-data/portal")
+    @Operation(summary = "Публичный реестр (плоско, с пагинацией)")
+    public ResponseEntity<com.example.eco_service.dto.response.PageResponse<com.example.eco_service.dto.main_dto.PortalWasteRowDto>> getPortalTable(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        return ResponseEntity.ok(reportService.getPortalTablePaged(page, size, q, sort, dir));
+    }
+
     @GetMapping("/pdf")
     @Operation(summary = "Сгенерировать PDF отчёт по всем типам отходов")
     public ResponseEntity<byte[]> generatePdfReport() throws IOException {
