@@ -16,8 +16,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Запрос для сущности MagazinTrash")
 public class MagazinTrashRequest {
 
-    @Schema(description = "ID класса опасности", example = "2")
-    @NotNull(message = "ID класса опасности обязателен")
+    @Schema(description = "ID класса опасности (необязателен)", example = "2")
     private Long id_class_danger;
 
     @Schema(description = "Код отхода (8 цифр)", example = "31401103")

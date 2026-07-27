@@ -212,12 +212,14 @@ public class CRUDServices {
 
     public ClassDanger createClassDanger(ClassDangerRequest request) {
         log.info("Creating ClassDanger with class: {}", request.getClassDanger());
-
-        ClassDanger entity = ClassDanger.builder()
-                .class_danger(request.getClassDanger())
-                .build();
-
-        return classDangerRepository.save(entity);
+        Integer v = request.getClassDanger();
+        if (v == null) {
+            throw new RuntimeException("classDanger обязателен");
+        }
+        return classDangerRepository.findByClassDangerValue(v)
+                .orElseGet(() -> classDangerRepository.save(ClassDanger.builder()
+                        .class_danger(v)
+                        .build()));
     }
 
     @Transactional(readOnly = true)
@@ -261,8 +263,11 @@ public class CRUDServices {
     public MagazinTrash createMagazinTrash(MagazinTrashRequest request) {
         log.info("Creating MagazinTrash with code: {}", request.getCode_trash());
 
-        ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
+        ClassDanger classDanger = null;
+        if (request.getId_class_danger() != null && request.getId_class_danger() > 0) {
+            classDanger = classDangerRepository.findById(request.getId_class_danger())
+                    .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
+        }
 
         MagazinTrash entity = MagazinTrash.builder()
                 .id_class_danger(classDanger)
@@ -293,9 +298,7 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("MagazinTrash not found with id: " + id));
 
         if (request.getId_class_danger() != null) {
-            ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                    .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
-            entity.setId_class_danger(classDanger);
+            entity.setId_class_danger(resolveOptionalClassDanger(request.getId_class_danger()));
         }
 
         if (request.getCode_trash() != null) {
@@ -473,11 +476,19 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("MagasinFactory not found with id: " + factoryId));
     }
 
+    /** null или ≤0 (в т.ч. −1 с фронта) — класс опасности не задан */
+    private ClassDanger resolveOptionalClassDanger(Long id) {
+        if (id == null || id <= 0) {
+            return null;
+        }
+        return classDangerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + id));
+    }
+
     public Technology createTechnology(TechnologyRequest request) {
         log.info("Creating Technology");
 
-        ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
+        ClassDanger classDanger = resolveOptionalClassDanger(request.getId_class_danger());
 
         MagazinTrash magazinTrash = magazinTrashRepository.findById(request.getId_magazin_trash())
                 .orElseThrow(() -> new RuntimeException("MagazinTrash not found with id: " + request.getId_magazin_trash()));
@@ -515,9 +526,7 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("Technology not found with id: " + id));
 
         if (request.getId_class_danger() != null) {
-            ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                    .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
-            entity.setId_class_danger(classDanger);
+            entity.setId_class_danger(resolveOptionalClassDanger(request.getId_class_danger()));
         }
 
         if (request.getId_magazin_trash() != null) {
@@ -551,6 +560,11 @@ public class CRUDServices {
 
     public MagasinFactory createMagasinFactory(MagasinFactoryRequest request) {
         log.info("Creating MagasinFactory with registration: {}", request.getId_registration());
+
+        if (request.getId_registration() != null
+                && magasinFactoryRepository.existsByRegistrationNumber(request.getId_registration())) {
+            throw new RuntimeException("Регистрационный номер уже существует у другой записи");
+        }
 
         Cities city = null;
         if (request.getId_cities() != null) {
@@ -619,7 +633,12 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("MagasinFactory not found with id: " + id));
 
         if (request.getId_registration() != null) {
-            entity.setId_registration(request.getId_registration());
+            String reg = request.getId_registration();
+            if (!reg.equals(entity.getId_registration())
+                    && magasinFactoryRepository.existsByRegistrationNumberAndIdNot(reg, id)) {
+                throw new RuntimeException("Регистрационный номер уже существует у другой записи");
+            }
+            entity.setId_registration(reg);
         }
 
         if (request.getDate_register() != null) {
@@ -808,8 +827,7 @@ public class CRUDServices {
     public MyTrash createMyTrash(MyTrashRequest request) {
         log.info("Creating MyTrash");
 
-        ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
+        ClassDanger classDanger = resolveOptionalClassDanger(request.getId_class_danger());
 
         MagazinTrash magazinTrash = magazinTrashRepository.findById(request.getId_magazin_trash())
                 .orElseThrow(() -> new RuntimeException("MagazinTrash not found with id: " + request.getId_magazin_trash()));
@@ -853,9 +871,7 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("MyTrash not found with id: " + id));
 
         if (request.getId_class_danger() != null) {
-            ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                    .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
-            entity.setId_class_danger(classDanger);
+            entity.setId_class_danger(resolveOptionalClassDanger(request.getId_class_danger()));
         }
 
         if (request.getId_magazin_trash() != null) {
@@ -897,8 +913,7 @@ public class CRUDServices {
     public DropAir createDropAir(DropAirRequest request) {
         log.info("Creating DropAir");
 
-        ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
+        ClassDanger classDanger = resolveOptionalClassDanger(request.getId_class_danger());
 
         NameDropAirTrash nameDropAirTrash = nameDropAirTrashRepository.findById(request.getId_name_grope_air())
                 .orElseThrow(() -> new RuntimeException("NameDropAirTrash not found with id: " + request.getId_name_grope_air()));
@@ -936,9 +951,7 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("DropAir not found with id: " + id));
 
         if (request.getId_class_danger() != null) {
-            ClassDanger classDanger = classDangerRepository.findById(request.getId_class_danger())
-                    .orElseThrow(() -> new RuntimeException("ClassDanger not found with id: " + request.getId_class_danger()));
-            entity.setId_class_danger(classDanger);
+            entity.setId_class_danger(resolveOptionalClassDanger(request.getId_class_danger()));
         }
 
         if (request.getId_name_grope_air() != null) {
@@ -993,7 +1006,7 @@ public class CRUDServices {
                 NumberPhoneCount link = NumberPhoneCount.builder()
                         .id_phone_number(phone)
                         .id_object_place_trash(magasinFactory)
-                        .ur_ob(request.getUr_ob())
+                        .ur_ob(request.getUr_ob() != null ? request.getUr_ob() : 0)
                         .build();
                 numberPhoneCountRepository.save(link);
             }
@@ -1029,7 +1042,13 @@ public class CRUDServices {
                 .orElseThrow(() -> new RuntimeException("NumberPhone not found with id: " + id));
 
         if (request.getNumber() != null) {
-            entity.setNumber(request.getNumber());
+            String num = request.getNumber();
+            numberPhoneRepository.findByNumber(num).ifPresent(existing -> {
+                if (!existing.getId_phone_number().equals(id)) {
+                    throw new RuntimeException("Такой номер телефона уже есть в справочнике");
+                }
+            });
+            entity.setNumber(num);
         }
 
         return numberPhoneRepository.save(entity);
@@ -1058,9 +1077,14 @@ public class CRUDServices {
         MagasinFactory magasinFactory = magasinFactoryRepository.findById(objectPlaceId)
                 .orElseThrow(() -> new RuntimeException("MagasinFactory not found with id: " + objectPlaceId));
 
-        // Проверяем, существует ли уже такая связь
+        // Обновляем ur_ob, если связь уже есть; иначе создаём
         if (numberPhoneCountRepository.existsLink(objectPlaceId, phoneId)) {
-            throw new RuntimeException("Link already exists between phone and object");
+            return numberPhoneCountRepository.findLink(objectPlaceId, phoneId)
+                    .map(link -> {
+                        link.setUr_ob(urOb);
+                        return numberPhoneCountRepository.save(link);
+                    })
+                    .orElseThrow(() -> new RuntimeException("Link already exists between phone and object"));
         }
 
         NumberPhoneCount entity = NumberPhoneCount.builder()

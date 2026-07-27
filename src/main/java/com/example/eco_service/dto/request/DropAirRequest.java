@@ -13,8 +13,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Запрос для сущности DropAir")
 public class DropAirRequest {
 
-    @Schema(description = "ID класса опасности", example = "2")
-    @NotNull(message = "ID класса опасности обязателен")
+    @Schema(description = "ID класса опасности (необязателен)", example = "2")
     private Long id_class_danger;
 
     @Schema(description = "ID наименования выброса", example = "10")

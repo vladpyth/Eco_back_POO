@@ -19,5 +19,5 @@ public class NumberPhoneRequest {
     private String number;
 
     @Schema(description = "принадлежность связи (0 юр., 1 объект, 3 оба)", example = "1")
-    private int ur_ob;
+    private Integer ur_ob;
 }
