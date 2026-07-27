@@ -497,6 +497,16 @@ public class MainRouters {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createNumberPhoneCount(objectPlaceId, phoneId, urOb));
     }
 
+    @PutMapping("/number-phone-count")
+    @Operation(summary = "Создать или обновить связь номера с предприятием")
+    public ResponseEntity<Void> upsertNumberPhoneCount(
+            @RequestParam Long objectPlaceId,
+            @RequestParam Long phoneId,
+            @RequestParam int urOb) {
+        service.createNumberPhoneCount(objectPlaceId, phoneId, urOb);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/number-phone-count")
     @Operation(summary = "Получить все связи номеров с предприятиями")
     public ResponseEntity<List<NumberPhoneCount>> findAllNumberPhoneCounts() {
