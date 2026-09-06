@@ -23,6 +23,13 @@ public interface InterfMyTrashCount extends JpaRepository<MyTrashCount, Long>, J
     @Query("SELECT m FROM MyTrashCount m WHERE m.id_object_place_trash.id_magasin_factory = :factoryId")
     List<MyTrashCount> findAllByFactoryId(@Param("factoryId") Long factoryId);
 
+    @Query("""
+            SELECT m FROM MyTrashCount m
+            JOIN FETCH m.id_object_place_trash
+            WHERE m.id_my_trash.id_my_trash IN :myTrashIds
+            """)
+    List<MyTrashCount> findAllByMyTrashIds(@Param("myTrashIds") List<Long> myTrashIds);
+
     // Найти количество отхода для конкретного предприятия и типа отхода
     @Query("SELECT m FROM MyTrashCount m WHERE m.id_my_trash.id_my_trash = :myTrashId AND m.id_object_place_trash.id_magasin_factory = :factoryId")
     Optional<MyTrashCount> findByMyTrashAndFactory(@Param("myTrashId") Long myTrashId, @Param("factoryId") Long factoryId);

@@ -1,6 +1,8 @@
 package com.example.eco_service.services;
 
 import com.example.eco_service.dto.request.*;
+import com.example.eco_service.dto.response.ListDtos;
+import com.example.eco_service.dto.response.ListDtos.*;
 import com.example.eco_service.dto.response.PageResponse;
 import com.example.eco_service.entities.*;
 import com.example.eco_service.repositories.*;
@@ -8,10 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -1268,41 +1273,124 @@ public class CRUDServices {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<Technology> findAllTechnologiesPaged(Integer page, Integer size, String q, String sort, String dir) {
+    public PageResponse<TechnologyListDto> findAllTechnologiesPaged(
+            Integer page, Integer size, String q, String sort, String dir, Long factoryId) {
         Pageable pageable = PageSupport.pageable(page, size, "id_technology");
-        return PageResponse.from(technologyRepository.findAll(
-                PageSupport.technologySpec(q, sort, dir), pageable));
+        Specification<Technology> spec = PageSupport.technologySpec(q, sort, dir);
+        if (factoryId != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("id_magasin_factory").get("id_magasin_factory"), factoryId));
+        }
+        return PageResponse.from(technologyRepository.findAll(spec, pageable).map(ListDtos::from));
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<MagasinFactory> findAllMagasinFactoriesPaged(
-            Integer page, Integer size, String q, String sort, String dir) {
+    public PageResponse<MagasinFactoryListDto> findAllMagasinFactoriesPaged(
+            Integer page, Integer size, String q, String sort, String dir,
+            String location, String wasteCode, String wasteSource) {
         Pageable pageable = PageSupport.pageable(page, size, "id_magasin_factory");
         // По умолчанию — рег. номер (то, что видно в первой колонке), а не PK
-        return PageResponse.from(magasinFactoryRepository.findAll(
-                PageSupport.textSearch(q, "id_magasin_factory", sort, dir, "id_registration", true), pageable));
+        Specification<MagasinFactory> spec =
+                PageSupport.textSearch(q, "id_magasin_factory", sort, dir, "id_registration", true);
+        if (location != null && !location.isBlank()) {
+            String like = "%" + location.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                var city = root.join("id_cities", jakarta.persistence.criteria.JoinType.LEFT);
+                var region = city.join("id_region", jakarta.persistence.criteria.JoinType.LEFT);
+                var district = city.join("id_district", jakarta.persistence.criteria.JoinType.LEFT);
+                return cb.or(
+                        cb.like(cb.lower(region.get("name_region")), like),
+                        cb.like(cb.lower(district.get("name_district")), like));
+            });
+        }
+        if ((wasteCode != null && !wasteCode.isBlank())
+                || "own".equalsIgnoreCase(wasteSource)
+                || "external".equalsIgnoreCase(wasteSource)) {
+            spec = spec.and(factoryWasteFilter(wasteCode, wasteSource));
+        }
+        return PageResponse.from(magasinFactoryRepository.findAll(spec, pageable).map(ListDtos::from));
+    }
+
+    private Specification<MagasinFactory> factoryWasteFilter(String wasteCode, String wasteSource) {
+        final Integer code;
+        try {
+            code = wasteCode == null || wasteCode.isBlank() ? null : Integer.valueOf(wasteCode.trim());
+        } catch (NumberFormatException ignored) {
+            return (root, query, cb) -> cb.disjunction();
+        }
+        boolean ownOnly = "own".equalsIgnoreCase(wasteSource);
+        boolean externalOnly = "external".equalsIgnoreCase(wasteSource);
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> matches = new java.util.ArrayList<>();
+            if (!externalOnly) {
+                var ownFactoryIds = query.subquery(Long.class);
+                var link = ownFactoryIds.from(MyTrashCount.class);
+                ownFactoryIds.select(link.get("id_object_place_trash").get("id_magasin_factory"));
+                if (code != null) {
+                    ownFactoryIds.where(cb.equal(
+                            link.get("id_my_trash").get("id_magazin_trash").get("code_trash"), code));
+                }
+                matches.add(root.get("id_magasin_factory").in(ownFactoryIds));
+            }
+            if (!ownOnly) {
+                var externalFactoryIds = query.subquery(Long.class);
+                var technology = externalFactoryIds.from(Technology.class);
+                externalFactoryIds.select(technology.get("id_magasin_factory").get("id_magasin_factory"));
+                if (code != null) {
+                    externalFactoryIds.where(cb.equal(
+                            technology.get("id_magazin_trash").get("code_trash"), code));
+                }
+                matches.add(root.get("id_magasin_factory").in(externalFactoryIds));
+            }
+            return cb.or(matches.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<MyTrash> findAllMyTrashesPaged(Integer page, Integer size, String q, String sort, String dir) {
+    public PageResponse<MyTrashListDto> findAllMyTrashesPaged(
+            Integer page, Integer size, String q, String sort, String dir, Long factoryId) {
         Pageable pageable = PageSupport.pageable(page, size, "id_my_trash");
-        Page<MyTrash> result = myTrashRepository.findAll(
-                PageSupport.myTrashSpec(q, sort, dir), pageable);
-        result.getContent().forEach(this::enrichMyTrashWithFactory);
-        return PageResponse.from(result);
+        Specification<MyTrash> spec = PageSupport.myTrashSpec(q, sort, dir);
+        if (factoryId != null) {
+            spec = spec.and((root, query, cb) -> {
+                var ids = query.subquery(Long.class);
+                var link = ids.from(MyTrashCount.class);
+                ids.select(link.get("id_my_trash").get("id_my_trash"));
+                ids.where(cb.equal(
+                        link.get("id_object_place_trash").get("id_magasin_factory"), factoryId));
+                return root.get("id_my_trash").in(ids);
+            });
+        }
+        Page<MyTrash> result = myTrashRepository.findAll(spec, pageable);
+        List<Long> ids = result.getContent().stream().map(MyTrash::getId_my_trash).toList();
+        Map<Long, MagasinFactory> factoriesByTrash = ids.isEmpty() ? Map.of()
+                : myTrashCountRepository.findAllByMyTrashIds(ids).stream()
+                .filter(link -> link.getId_my_trash() != null && link.getId_object_place_trash() != null)
+                .collect(Collectors.toMap(
+                        link -> link.getId_my_trash().getId_my_trash(),
+                        MyTrashCount::getId_object_place_trash,
+                        (first, ignored) -> first));
+        return PageResponse.from(result.map(value ->
+                ListDtos.from(value, factoriesByTrash.get(value.getId_my_trash()))));
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<DropAir> findAllDropAirsPaged(Integer page, Integer size, String q, String sort, String dir) {
+    public PageResponse<DropAirListDto> findAllDropAirsPaged(
+            Integer page, Integer size, String q, String sort, String dir, Long factoryId) {
         Pageable pageable = PageSupport.pageable(page, size, "id_drop_air");
-        return PageResponse.from(dropAirRepository.findAll(
-                PageSupport.dropAirSpec(q, sort, dir), pageable));
+        Specification<DropAir> spec = PageSupport.dropAirSpec(q, sort, dir);
+        if (factoryId != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("id_magasin_factory").get("id_magasin_factory"), factoryId));
+        }
+        return PageResponse.from(dropAirRepository.findAll(spec, pageable).map(ListDtos::from));
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<NumberPhone> findAllNumberPhonesPaged(Integer page, Integer size, String q, String sort, String dir) {
+    public PageResponse<NumberPhoneListDto> findAllNumberPhonesPaged(
+            Integer page, Integer size, String q, String sort, String dir) {
         Pageable pageable = PageSupport.pageable(page, size, "id_phone_number");
         return PageResponse.from(numberPhoneRepository.findAll(
-                PageSupport.numberPhoneSpec(q, sort, dir), pageable));
+                PageSupport.numberPhoneSpec(q, sort, dir), pageable).map(ListDtos::from));
     }
 }

@@ -129,7 +129,6 @@ public final class PageSupport {
                 List<Order> orders = new ArrayList<>();
                 if (sort == null || "id_magasin_factory".equals(sort)) {
                     Path<String> reg = root.get("id_magasin_factory").get("id_registration");
-                    orders.add(asc ? cb.asc(cb.length(reg)) : cb.desc(cb.length(reg)));
                     orders.add(asc ? cb.asc(reg) : cb.desc(reg));
                 } else if ("id_name_grope_air".equals(sort)) {
                     Path<String> name = root.get("id_name_grope_air").get("name_drop_air_trash");
@@ -255,7 +254,6 @@ public final class PageSupport {
                 List<Order> orders = new ArrayList<>();
                 if (sort == null || "id_magasin_factory".equals(sort)) {
                     Path<String> reg = root.get("id_magasin_factory").get("id_registration");
-                    orders.add(asc ? cb.asc(cb.length(reg)) : cb.desc(cb.length(reg)));
                     orders.add(asc ? cb.asc(reg) : cb.desc(reg));
                 } else if ("id_magazin_trash".equals(sort)) {
                     Path<Integer> code = root.get("id_magazin_trash").get("code_trash");
@@ -477,15 +475,7 @@ public final class PageSupport {
         String field = resolveSortField(root, sortBy, defaultSortField != null ? defaultSortField : idAttribute);
         boolean asc = resolveAsc(sortBy, sortDir, defaultAsc);
         Path<?> path = root.get(field);
-        if ("id_registration".equals(field) && path.getJavaType() == String.class) {
-            var len = cb.length(root.get(field));
-            query.orderBy(
-                    asc ? cb.asc(len) : cb.desc(len),
-                    asc ? cb.asc(path) : cb.desc(path)
-            );
-        } else {
-            query.orderBy(asc ? cb.asc(path) : cb.desc(path));
-        }
+        query.orderBy(asc ? cb.asc(path) : cb.desc(path));
     }
 
     private static <T> Predicate buildBasicSearchPredicate(
